@@ -37,6 +37,13 @@ class TestReportCog:
         return channel
 
     @pytest.fixture
+    def user(self):
+        """"Who's being reported?"""
+        member = MagicMock(spec=Member)
+        member.mention = "@NaughtyUser"
+        member.id = 6666
+
+    @pytest.fixture
     def ctx(self, dm_channel, mod_channel):
         """Create a mock ApplicationContext with all necessary attributes."""
         ctx = MagicMock(spec=ApplicationContext)
@@ -55,6 +62,10 @@ class TestReportCog:
         ctx.channel.mention = "#test-channel"
         ctx.channel.id = 67890
 
+        ctx.user = MagicMock(spec=Member)
+        ctx.user.mention = "@NaughtyUser"
+        ctx.user.id = 6666
+
         def mock_get(channels, id):
             if id == settings.channels.REPORTS:
                 return mod_channel
@@ -70,10 +81,11 @@ class TestReportCog:
         return ReportCog(mock_bot)
 
     @staticmethod
-    def create_mock_message(author, channel, content="", attachments=None):
+    def create_mock_message(author, channel, content="", user="", attachments=None):
         msg = MagicMock(spec=Message)
         msg.author = author
         msg.channel = channel
+        msg.user = user
         msg.content = content.lower() if content else ""
         msg.attachments = attachments or []
         return msg
@@ -87,14 +99,14 @@ class TestReportCog:
         return attachment
 
     @pytest.mark.asyncio
-    async def test_report_basic_no_images(self, cog, ctx, dm_channel, mod_channel):
+    async def test_report_basic_no_images(self, cog, ctx, dm_channel, user, mod_channel):
         """Test basic report functionality without any images."""
         # Setup message sequence
-        done_message = self.create_mock_message(ctx.author, dm_channel, content="done")
+        done_message = self.create_mock_message(author=ctx.author, channel=dm_channel, user=ctx.user, content="done")
         cog.bot.wait_for.side_effect = [done_message]
 
         # Execute
-        await cog.report.callback(cog, ctx, message="Test report")
+        await cog.report.callback(cog, ctx=ctx, message="Test report", user=user)
 
         # Verify initial responses
         ctx.defer.assert_called_once_with(ephemeral=True)
@@ -115,7 +127,7 @@ class TestReportCog:
         assert embed.fields[0].value == "Test report"
 
     @pytest.mark.asyncio
-    async def test_report_with_valid_images(self, cog, ctx, dm_channel, mod_channel):
+    async def test_report_with_valid_images(self, cog, ctx, dm_channel, user, mod_channel):
         """Test report submission with valid images."""
         # Create mock attachments
         valid_attachments = [
@@ -124,12 +136,12 @@ class TestReportCog:
         ]
 
         # Setup message sequence
-        image_message = self.create_mock_message(ctx.author, dm_channel, attachments=valid_attachments)
-        done_message = self.create_mock_message(ctx.author, dm_channel, content="done")
+        image_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, attachments=valid_attachments)
+        done_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, content="done")
         cog.bot.wait_for.side_effect = [image_message, done_message]
 
         # Execute
-        await cog.report.callback(cog, ctx, message="Test report with images")
+        await cog.report.callback(cog, ctx, message="Test report with images", user=user)
 
         # Verify
         assert mod_channel.send.call_count == 2  # One for embed, one for images
@@ -147,7 +159,7 @@ class TestReportCog:
         assert len(image_kwargs['files']) == 2
 
     @pytest.mark.asyncio
-    async def test_report_invalid_file_types(self, cog, ctx, dm_channel, mod_channel):
+    async def test_report_invalid_file_types(self, cog, ctx, dm_channel, user, mod_channel):
         """Test report with invalid file types."""
         invalid_attachments = [
             self.create_mock_attachment("test.txt"),
@@ -155,11 +167,11 @@ class TestReportCog:
             self.create_mock_attachment("test.doc")
         ]
 
-        invalid_message = self.create_mock_message(ctx.author, dm_channel, attachments=invalid_attachments)
-        done_message = self.create_mock_message(ctx.author, dm_channel, content="done")
+        invalid_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, attachments=invalid_attachments)
+        done_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, content="done")
         cog.bot.wait_for.side_effect = [invalid_message, done_message]
 
-        await cog.report.callback(cog, ctx, message="Test report with invalid files")
+        await cog.report.callback(cog, ctx, message="Test report with invalid files", user=user)
 
         # Verify warning message sent via DM
         dm_channel.send.assert_any_call(
@@ -179,7 +191,7 @@ class TestReportCog:
         assert 'files' not in kwargs
 
     @pytest.mark.asyncio
-    async def test_report_mixed_file_types(self, cog, ctx, dm_channel, mod_channel):
+    async def test_report_mixed_file_types(self, cog, ctx, dm_channel, user, mod_channel):
         """Test report with mix of valid and invalid file types."""
         mixed_attachments = [
             self.create_mock_attachment("valid.png"),
@@ -187,11 +199,11 @@ class TestReportCog:
             self.create_mock_attachment("valid.jpg")
         ]
 
-        mixed_message = self.create_mock_message(ctx.author, dm_channel, attachments=mixed_attachments)
-        done_message = self.create_mock_message(ctx.author, dm_channel, content="done")
+        mixed_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, attachments=mixed_attachments)
+        done_message = self.create_mock_message(ctx.author, dm_channel, user=ctx.user, content="done")
         cog.bot.wait_for.side_effect = [mixed_message, done_message]
 
-        await cog.report.callback(cog, ctx, message="Test report with mixed files")
+        await cog.report.callback(cog, ctx, message="Test report with mixed files", user=user)
 
         # Verify only valid images were sent
         assert mod_channel.send.call_count == 2
@@ -217,10 +229,10 @@ class TestReportCog:
 
 
     @pytest.mark.asyncio
-    async def test_report_no_mod_channel(self, cog, ctx):
+    async def test_report_no_mod_channel(self, cog, ctx, user):
         """Test report when moderator channel is not found."""
         with patch('discord.utils.get', return_value=None):
-            await cog.report.callback(cog, ctx, message="Test report")
+            await cog.report.callback(cog, ctx, user=ctx.user, message="Test report")
 
         ctx.respond.assert_called_with(
             "❌ Unable to process report: Moderator channel not found. Please notify an admin.",
@@ -228,11 +240,11 @@ class TestReportCog:
         )
 
     @pytest.mark.asyncio
-    async def test_report_dm_forbidden(self, cog, ctx):
+    async def test_report_dm_forbidden(self, cog, ctx, user):
         """Test report when bot is unable to send DM to the user."""
         ctx.author.create_dm.side_effect = discord.Forbidden(MagicMock(), "Cannot send messages to this user")
 
-        await cog.report.callback(cog, ctx, message="Test report")
+        await cog.report.callback(cog, ctx, user=ctx.user, message="Test report")
 
         ctx.respond.assert_called_with(
             "❌ I couldn't send you a DM. Please check your privacy settings and try again.",
@@ -240,11 +252,11 @@ class TestReportCog:
         )
 
     @pytest.mark.asyncio
-    async def test_report_unexpected_error(self, cog, ctx):
+    async def test_report_unexpected_error(self, cog, ctx, user):
         """Test report when an unexpected error occurs."""
         ctx.author.create_dm.side_effect = Exception("Unexpected error")
 
-        await cog.report.callback(cog, ctx, message="Test report")
+        await cog.report.callback(cog, ctx, user=ctx.user, message="Test report")
 
         ctx.respond.assert_called_with(
             "❌ An error occurred while processing your report. Please try again later.",

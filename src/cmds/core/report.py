@@ -28,6 +28,7 @@ class ReportCog(commands.Cog):
         self,
         ctx: ApplicationContext,
         message: Option(str, "What do you want to report?", required=True),
+        user: Option(discord.Member, "Who do you want to report?", required=False),
     ) -> None:
         """Allows users to report an issue with a description and prompts them to provide multiple images via DM."""
         # Defer the response to allow time for processing
@@ -114,6 +115,12 @@ class ReportCog(commands.Cog):
                 timestamp=datetime.utcnow()
             )
             embed.add_field(name="📝 Content", value=message, inline=False)
+            if user:
+                embed.add_field(
+                    name="User reported",
+                    value=f"{user.mention} ({user.id})",
+                    inline=False
+                )
             if images:
                 embed.add_field(
                     name="📎 Attachments",
