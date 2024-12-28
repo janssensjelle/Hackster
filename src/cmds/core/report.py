@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from datetime import datetime
 
 import discord
@@ -11,6 +12,15 @@ from src.bot import Bot
 from src.core import settings
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_message(message: str) -> str:
+    """Sanitize message content to prevent @everyone and similar mentions."""
+    # Replace @everyone with [at everyone]
+    message = re.sub(r'@everyone', '[at everyone]', message, flags=re.IGNORECASE)
+    # Also handle @here as it has similar functionality
+    message = re.sub(r'@here', '[at here]', message, flags=re.IGNORECASE)
+    return message
 
 
 class ReportCog(commands.Cog):
@@ -31,6 +41,9 @@ class ReportCog(commands.Cog):
         user: Option(discord.Member, "Who do you want to report?", required=False),
     ) -> None:
         """Allows users to report an issue with a description and prompts them to provide multiple images via DM."""
+        # Sanitize the message to prevent mentions of @everyone and @here
+        sanitized_message = sanitize_message(message)
+
         # Defer the response to allow time for processing
         await ctx.defer(ephemeral=True)
 
@@ -114,7 +127,7 @@ class ReportCog(commands.Cog):
                 color=discord.Color.yellow(),
                 timestamp=datetime.utcnow()
             )
-            embed.add_field(name="📝 Content", value=message, inline=False)
+            embed.add_field(name="📝 Content", value=sanitized_message, inline=False)
             if user:
                 embed.add_field(
                     name="User reported",
