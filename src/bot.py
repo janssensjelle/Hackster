@@ -1,15 +1,31 @@
 import logging
 import socket
+import os
 
 import discord
 from aiohttp import AsyncResolver, ClientSession, TCPConnector
 from discord import (
-    ApplicationContext, Cog, DiscordException, Embed, Forbidden, Guild, HTTPException, Member, NotFound, User,
+    ApplicationContext,
+    Cog,
+    DiscordException,
+    Embed,
+    Forbidden,
+    Guild,
+    HTTPException,
+    Member,
+    NotFound,
+    User,
 )
 from discord.ext.commands import Bot as DiscordBot
 from discord.ext.commands import (
-    CommandNotFound, CommandOnCooldown, DefaultHelpCommand, MissingAnyRole, MissingPermissions,
-    MissingRequiredArgument, NoPrivateMessage, UserInputError,
+    CommandNotFound,
+    CommandOnCooldown,
+    DefaultHelpCommand,
+    MissingAnyRole,
+    MissingPermissions,
+    MissingRequiredArgument,
+    NoPrivateMessage,
+    UserInputError,
 )
 from sqlalchemy.exc import NoResultFound
 
@@ -42,25 +58,17 @@ class Bot(DiscordBot):
             self.http_session = None
 
     async def on_ready(self) -> None:
-        """Triggered when the bot is ready."""
         if self.http_session is None:
             logger.debug("Starting the HTTP session")
             self.http_session = ClientSession(
-                connector=TCPConnector(resolver=AsyncResolver(), family=socket.AF_INET), 
+                connector=TCPConnector(resolver=AsyncResolver(), family=socket.AF_INET),
                 trace_configs=[trace_config]
             )
 
         name = f"{self.user} (ID: {self.user.id})"
-        devlog_msg = f"Connected {constants.emojis.partying_face}"
+        git_commit = os.getenv('GIT_COMMIT', 'unknown')[:7]
+        devlog_msg = f"Connected {constants.emojis.partying_face}\nBuild: `{git_commit}`"
         self.loop.create_task(self.send_log(devlog_msg, colour=constants.colours.bright_green))
-
-        logger.info(f"Started bot as {name}")
-        print("Loading ScheduledTasks cog...")
-        try:
-            bot.load_extension("src.cmds.automation.scheduled_tasks")
-            print("ScheduledTasks cog loaded!")
-        except Exception as e:
-            print(f"Failed to load ScheduledTasks cog: {e}")
 
     async def on_application_command(self, ctx: ApplicationContext) -> None:
         """A global handler cog."""
