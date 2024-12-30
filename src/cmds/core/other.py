@@ -1,6 +1,7 @@
 import logging
 
 import discord
+import os
 from discord import ApplicationContext, Interaction, Message, Option, slash_command
 from discord.ext import commands
 from discord.ui import InputText, Modal
@@ -126,6 +127,12 @@ class OtherCog(commands.Cog):
         """Provide feedback to HTB."""
         modal = FeedbackModal(title="Feedback")
         return await ctx.send_modal(modal)
+    
+    @slash_command(guild_ids=settings.guild_ids, description="Get version information about the bot.")
+    async def version(self, ctx: ApplicationContext) -> None:
+        """Get version information about the bot."""
+        git_commit = os.getenv('GIT_COMMIT', 'unknown')
+        await ctx.respond(f"Git commit: {git_commit}", ephemeral=True)
 
     @slash_command(guild_ids=settings.guild_ids, description="Report a suspected cheater on the main platform.")
     @commands.cooldown(1, 60, commands.BucketType.user)
