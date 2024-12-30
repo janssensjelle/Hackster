@@ -1,0 +1,15 @@
+name: Trigger Portainer Webhook
+
+on:
+  push:
+    branches:
+      - develop  # Trigger on commits to the main branch
+
+jobs:
+  trigger-webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Trigger Portainer Webhook
+      run: curl -X POST ${{ secrets.PORTAINER_portainer_webhook_url }}
+
