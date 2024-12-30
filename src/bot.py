@@ -57,14 +57,6 @@ class Bot(DiscordBot):
             logger.debug("Mocking the HTTP session")
             self.http_session = None
 
-    def get_git_commit():
-        try:
-            return subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
-                                        cwd='/opt/hackster',
-                                        text=True).strip()[:7]
-        except:
-            return 'unknown'
-
     async def on_ready(self) -> None:
         if self.http_session is None:
             logger.debug("Starting the HTTP session")
@@ -74,7 +66,7 @@ class Bot(DiscordBot):
             )
 
         name = f"{self.user} (ID: {self.user.id})"
-        git_commit = get_git_commit()
+        git_commit = os.getenv('GIT_COMMIT', 'unknown')
         devlog_msg = f"Connected {constants.emojis.partying_face}\nBuild: `{git_commit}`"
         self.loop.create_task(self.send_log(devlog_msg, colour=constants.colours.bright_green))
 
