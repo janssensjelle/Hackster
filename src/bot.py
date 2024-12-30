@@ -67,7 +67,7 @@ class Bot(DiscordBot):
 
         name = f"{self.user} (ID: {self.user.id})"
         git_commit = os.getenv('GIT_COMMIT', 'unknown')
-        devlog_msg = f"Connected {constants.emojis.partying_face}\nBuild: `{git_commit}`"
+        devlog_msg = f"Connected {constants.emojis.partying_face} Test new build {constants.emojis.lock}\nBuild: `{git_commit}`"
         self.loop.create_task(self.send_log(devlog_msg, colour=constants.colours.bright_green))
 
     async def on_application_command(self, ctx: ApplicationContext) -> None:
