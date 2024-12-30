@@ -58,12 +58,12 @@ class Bot(DiscordBot):
             self.http_session = None
 
     def get_git_commit():
-    try:
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
-                                    cwd='/opt/hackster',
-                                    text=True).strip()[:7]
-    except:
-        return 'unknown'
+        try:
+            return subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
+                                        cwd='/opt/hackster',
+                                        text=True).strip()[:7]
+        except:
+            return 'unknown'
 
     async def on_ready(self) -> None:
         if self.http_session is None:
