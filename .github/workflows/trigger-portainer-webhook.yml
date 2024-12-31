@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Trigger Portainer Webhook
       run: |
-          curl -L -X POST \
+          curl -v -L -X POST \
             -H "CF-Access-Client-Id: ${{ secrets.CF_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_CLIENT_SECRET }}" \
             ${{ secrets.PORTAINER_WEBHOOK_URL }}
