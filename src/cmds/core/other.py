@@ -1,7 +1,7 @@
 import logging
+import os
 
 import discord
-import os
 from discord import ApplicationContext, Interaction, Message, Option, slash_command
 from discord.ext import commands
 from discord.ui import InputText, Modal
@@ -62,7 +62,7 @@ class SpoilerModal(Modal):
         """Initialize the Spoiler Modal with input fields."""
         super().__init__(*args, **kwargs)
         self.add_item(InputText(label="Description", placeholder="Description", required=False, style=discord.InputTextStyle.long))
-        self.add_item(InputText(label="URL", placeholder="Enter URL", required=True, style=discord.InputTextStyle.long))
+        self.add_item(InputText(label="URL", placeholder="Enter URL. Submitting malicious or fake links will result in consequences.", required=True, style=discord.InputTextStyle.paragraph))
 
     async def callback(self, interaction: discord.Interaction) -> None:
         """Handle the modal submission by sending the spoiler report to JIRA."""
@@ -129,7 +129,7 @@ class OtherCog(commands.Cog):
         """Provide feedback to HTB."""
         modal = FeedbackModal(title="Feedback")
         return await ctx.send_modal(modal)
-    
+
     @slash_command(guild_ids=settings.guild_ids, description="Get version information about the bot.")
     async def version(self, ctx: ApplicationContext) -> None:
         """Get version information about the bot."""
